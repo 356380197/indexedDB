@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<body>
+	<script type="text/javascript">
+	
+	/*判断是否支持*/
+	document.addEventListener("DOMContentLoaded", function(){ 
+  
+    if("indexedDB" in window) { 
+        console.log("YES!!! I CAN DO IT!!! WOOT!!!"); 
+    } else { 
+        console.log("I has a sad."); 
+    } 
+  
+},false);
+
+
+	
+		function openDB (name,version) {
+            var version=version || 1;
+			
+			
+			var indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+            var request=indexedDB.open(name,version);
+            request.onerror=function(e){
+                console.log(e.currentTarget.error.message);
+            };
+            request.onsuccess=function(e){
+                myDB.db=e.target.result;
+            };
+            request.onupgradeneeded=function(e){
+                var db=e.target.result;
+                if(!db.objectStoreNames.contains('students')){
+				/*
+					我们可以使用contains方法检查某个对象是否已经存在了，如果不存在则可以进行创建，
+					使用的方法是createObjectStore，因为这个是IndexedDB的同步操作，因此不需要为此进行事件监听。
+				*/
+                 /*  db.createObjectStore('students',{keyPath:"id"});*/
+				   db.createObjectStore('students',{autoIncrement: true});
+                }
+                console.log('DB version changed to '+version);
+            };
+        }
+
+       var students=[{ 
+            id:1001, 
+            name:"Byron", 
+            age:24 
+        },{ 
+            id:1002, 
+            name:"Frank", 
+            age:30 
+        },{ 
+            id:1003, 
+            name:"Aaron", 
+            age:26 
+        }];
+		function closeDB(db){
+            db.close();
+        }
+		function deleteDB(name){
+            indexedDB.deleteDatabase(name);
+        }
+		var myDB={
+            name:'test',
+            version:3,
+            db:null
+        };
+      /*  openDB(myDB.name,myDB.version);
+        setTimeout(function(){
+            closeDB(myDB.db);
+            deleteDB(myDB.name);
+        },500);*/
+		
+		function addData(db,storeName){
+            var transaction=db.transaction(storeName,'readwrite'); 
+            var store=transaction.objectStore(storeName); 
+
+            for(var i=0;i<students.length;i++){
+                store.add(students[i]);
+            }
+        }
+
+
+openDB(myDB.name,myDB.version);
+        setTimeout(function(){
+            addData(myDB.db,'students');
+        },1000);
+
+		function getDataByKey(db,storeName,value){
+					var transaction=db.transaction(storeName,'readwrite'); 
+					var store=transaction.objectStore(storeName); 
+					var request=store.get(value); 
+					request.onsuccess=function(e){ 
+						var student=e.target.result; 
+						console.log(student.name); 
+					};
+					
+					
+		}
+		
+更新数据
+可以调用object store的put方法更新数据，会自动替换键值相同的记录，达到更新目的，没有相同的则添加，以使用keyPath做键为例
+		
+		function updateDataByKey(db,storeName,value){
+            var transaction=db.transaction(storeName,'readwrite'); 
+            var store=transaction.objectStore(storeName); 
+            var request=store.get(value); 
+            request.onsuccess=function(e){ 
+                var student=e.target.result; 
+                student.age=35;
+                store.put(student); 
+            };
+}
+	</script>
+</body>
+</html>
