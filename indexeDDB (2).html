@@ -1,0 +1,123 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<body>
+	<script type="text/javascript">
+		if (!window.indexedDB) {  
+				window.indexedDB = window.mozIndexedDB || window.webkitIndexedDB;  
+			}  
+			  
+			var request = indexedDB.open("MyTestDatabase");  
+			  
+		/*	request.onsuccess = function(e) {  
+				// Obtain IDBDatabase   
+				// VERSION_CHANGE transaction callback  
+				var db = request.result;  
+			}  */
+			
+			
+			
+			var db = null;  
+var customerData = [  
+        {ssn: "444-44-4444", name: "Bill", age: 25, email: "bill@company.com", nickName: ["1", "2", "3"]},  
+        {ssn: "555-55-5555", name: "Donna", age: 34, email: "donna@home.org"},  
+        {ssn: "666-66-6666", name: "Jack", age: 14, email: "jack@sina.com.cn"}  
+    ];  
+request.onsuccess = function(e) {  
+    // Obtain IDBDatabase   
+    // VERSION_CHANGE transaction callback  
+    db = request.result;  
+      
+    if (db.version != "1.0") {  
+        var requestVersion = db.setVersion("1.0");  
+        requestVersion.onerror = function(event) {  
+            alert(event);  
+        }  
+        requestVersion.onsuccess = function(event) {  
+            createObjectStore(db);  
+        }  
+    }  
+      
+    db.close();  
+};  
+  
+function createObjectStore(db) {  
+  
+    if (db.objectStoreNames.contains('customers')) {  
+        db.deleteObjectStore("customers")  
+    }  
+    // Create Object Store  
+    // This method was not called from a VERSION_CHANGE transaction callback.  
+    var objectStore = db.createObjectStore("customers", {  
+        // primary key  
+        keyPath: "ssn",  
+        // auto increment  
+        autoIncrement: false  
+    });  
+      
+    objectStore.createIndex("name", "name", { unique: false });  
+      
+    objectStore.createIndex("email", "email", { unique: true });  
+      
+    // Add initial data  
+    for (var index = 0; index < customerData.length; index++) {  
+        objectStore.add(customerData[index]);  
+    }  
+}  
+
+
+var transaction = db.transaction(["customers"]);  
+  
+// 通过IDBTransaction得到IDBObjectStore  
+var objectStore = transaction.objectStore("customers");  
+  
+// 打开游标，遍历customers中所有数据  
+objectStore.openCursor().onsuccess = function(event) {  
+              
+    var cursor = event.target.result;  
+              
+    if (cursor) {  
+        var key = cursor.key;  
+        var rowData = cursor.value;  
+        alert(rowData.name);  
+        cursor.continue();  
+    }  
+}  
+/*openCursor的第一个参数为查询条件，他需要传入一个IDBKeyRange对象。
+IDBKeyRange的创建方式有4种，都是调用了IDBKeyRange的静态方法。分别代表了4种不同类型的条件。*/
+
+// 只取得当前索引的值为Bill的数据  
+// IDBKeyRange.only("Bill");  
+  
+// 只取得当前索引的值大于Bill，并且不包括Bill的数据  
+// IDBKeyRange.lowerBound("Bill", true);  
+  
+// 只取得当前索引的值小于Bill，并且包括Bill的数据  
+// IDBKeyRange.upperBound("Bill", false);  
+  
+// 取得当前索引的值介于Bill和Jack之间，并且包括Bill，但不包括Jack的数据  
+// IDBKeyRange.bound("Bill", "Jack", false, true);  
+ /*2)openCursor的第二个参数为游标方向。有4种
+IDBCursor.NEXT                                  顺序循环
+IDBCursor.NEXT_NO_DUPLICATE        顺序循环不重复
+IDBCursor.PREV                                  倒序循环
+IDBCursor.PREV_NO_DUPLICATE        倒序循环不重复*/
+var boundKeyRange = IDBKeyRange.upperBound("Jack", false);  
+objectStore.index("name").openCursor(boundKeyRange, IDBCursor.PREV_NO_DUPLICATE).onsuccess = function(event) {  
+        var cursor = event.target.result;  
+          
+        if (!cursor) {  
+            return;  
+        }  
+          
+        var rowData = cursor.value;  
+          
+        alert(rowData.name);  
+        cursor.continue();  
+    };  
+	</script>
+</body>
+</html>
